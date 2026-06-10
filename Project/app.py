@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime
 
 import requests
-from flask import Flask, request, jsonify, render_template, send_file, Response, stream_with_context
+from flask import Flask, request, jsonify, render_template, send_file, Response, stream_with_context, redirect
 
 from agents.orchestrator import run_pipeline
 
@@ -19,6 +19,30 @@ os.makedirs(REPORTS_DIR, exist_ok=True)
 
 
 @app.route("/")
+@app.route("/login", methods=["GET","POST"])
+def login():
+    if request.method == "GET":
+        return render_template("login.html")
+
+    data = request.get_json(silent=True)
+    if data:
+        username = (data.get("username") or "").strip()
+        password = data.get("password") or ""
+    else:
+        username = (request.form.get("username") or "").strip()
+        password = request.form.get("password") or ""
+
+    if username == "admin" and password == "rca2024":
+        if data:
+            return jsonify({"success": True, "redirect_url": "/dashboard"})
+        return redirect("/dashboard")
+
+    if data:
+        return jsonify({"success": False, "message": "Invalid username or password"}), 401
+    return render_template("login.html", error="Invalid credentials."), 401
+
+
+@app.route("/dashboard")
 def index():
     return render_template("index.html")
 
@@ -133,7 +157,6 @@ def delete_report(report_id):
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
-
 @app.route("/analyze-stream", methods=["POST"])
 def analyze_stream():
     data = request.get_json(silent=True) or {}
@@ -164,7 +187,7 @@ def analyze_stream():
 
     def stream():
         try:
-            yield json.dumps({"type":"status","message":"Analyzing timeline..."}) + "\n"
+            yield json.dumps({"type": "status", "message": "Analyzing timeline..."}) + "\n"
 
             timeline_prompt = f"""You are a precise incident timeline parser.
 Analyze the following raw incident timeline text and extract structured events.
@@ -189,7 +212,7 @@ Timeline text:
 JSON output:"""
             timeline_result = call_ollama_json(timeline_prompt)
 
-            yield json.dumps({"type":"status","message":"Scanning logs..."}) + "\n"
+            yield json.dumps({"type": "status", "message": "Scanning logs..."}) + "\n"
 
             log_prompt = f"""You are an expert log analysis agent.
 Analyze the following error logs and identify patterns, anomalies, and affected services.
@@ -213,7 +236,7 @@ Error logs:
 JSON output:"""
             log_result = call_ollama_json(log_prompt)
 
-            yield json.dumps({"type":"status","message":"Reviewing diff..."}) + "\n"
+            yield json.dumps({"type": "status", "message": "Reviewing diff..."}) + "\n"
 
             diff_prompt = f"""You are a code review and risk assessment agent.
 Analyze the following git diff and identify risky changes that could cause incidents.
@@ -240,7 +263,7 @@ Git diff:
 JSON output:"""
             diff_result = call_ollama_json(diff_prompt)
 
-            yield json.dumps({"type":"status","message":"Generating RCA..."}) + "\n"
+            yield json.dumps({"type": "status", "message": "Generating RCA..."}) + "\n"
 
             rca_prompt = f"""You are a senior Site Reliability Engineer writing a formal Root Cause Analysis report.
 Using the structured data from three analysis agents below, produce a complete RCA document in Markdown.
@@ -313,11 +336,11 @@ Output ONLY markdown."""
                         token = chunk.get("response", "")
                         if token:
                             final_markdown += token
-                            yield json.dumps({"type":"chunk","content":token}) + "\n"
+                            yield json.dumps({"type": "chunk", "content": token}) + "\n"
                     except Exception:
                         continue
             except Exception as e:
-                yield json.dumps({"type":"error","message":str(e)}) + "\n"
+                yield json.dumps({"type": "error", "message": str(e)}) + "\n"
                 return
 
             report_id = str(uuid.uuid4())[:8]
@@ -340,14 +363,16 @@ Output ONLY markdown."""
             except Exception:
                 pass
 
-            yield json.dumps({"type":"done","report_id":report_id}) + "\n"
+            yield json.dumps({"type": "done", "report_id": report_id}) + "\n"
         except Exception as e:
-            yield json.dumps({"type":"error","message":str(e)}) + "\n"
+            yield json.dumps({"type": "error", "message": str(e)}) + "\n"
 
     return Response(stream_with_context(stream()), mimetype="application/x-ndjson")
 
+
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
+
 
 
 
