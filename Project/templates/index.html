@@ -1,0 +1,509 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RCA Agent — Root Cause Analysis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer>
+document.getElementById('closeReportBtn')?.addEventListener('click', () => {
+  currentReportId = null;
+  currentMarkdown = '';
+  const out = document.getElementById('rcaOutput');
+  if (out) {
+    out.innerHTML = '<p style="color:#7d8ab0;">Run an analysis to generate the RCA report.</p>';
+  }
+  const badge = document.getElementById('savedBadge');
+  if (badge) {
+    badge.classList.remove('visible');
+  }
+  const footer = document.getElementById('footerStatus');
+  if (footer) {
+    footer.textContent = 'Closed opened report.';
+  }
+});
+
+</script>
+</head>
+<body>
+<div class="app-wrapper">
+  <header class="app-header">
+    <div class="header-logo">
+      <svg class="logo-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="RCA Agent">
+        <rect width="32" height="32" rx="7" fill="#13161e"/>
+        <rect x="0.5" y="0.5" width="31" height="31" rx="6.5" stroke="#89b4fa" stroke-opacity="0.4"/>
+        <circle cx="13" cy="13" r="6" stroke="#89b4fa" stroke-width="1.8" fill="none"/>
+        <line x1="17.5" y1="17.5" x2="23" y2="23" stroke="#89b4fa" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="13" cy="13" r="2.5" fill="#cba6f7" fill-opacity="0.7"/>
+      </svg>
+      <span class="header-title">RCA<span>Agent</span></span>
+    </div>
+    <button class="health-badge" id="healthBtn" type="button">
+      <span class="health-dot" id="healthDot"></span>
+      <span id="healthLabel">ollama: checking…</span>
+    </button>
+  </header>
+
+  <main class="main-content" role="main">
+    <div class="layout-grid">
+      <section>
+        <div class="input-grid">
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-dot dot-red"></span>
+              <span class="panel-dot dot-yellow"></span>
+              <span class="panel-dot dot-green"></span>
+              <span class="panel-title">Incident Timeline</span>
+              <label for="timelineFile" class="attach-btn">+ Add File</label>
+              <input type="file" id="timelineFile" class="hidden-file-input" accept=".txt,.log,.md,.json,.csv" />
+              <span class="panel-badge">Agent 1</span>
+            </div>
+            <textarea id="timelineInput" placeholder="Paste raw incident timeline here..."></textarea>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-dot dot-red"></span>
+              <span class="panel-dot dot-yellow"></span>
+              <span class="panel-dot dot-green"></span>
+              <span class="panel-title">Error Logs</span>
+              <label for="logFile" class="attach-btn">+ Add File</label>
+              <input type="file" id="logFile" class="hidden-file-input" accept=".txt,.log,.out,.err,.json" />
+              <span class="panel-badge">Agent 2</span>
+            </div>
+            <textarea id="logInput" placeholder="Paste error logs here..."></textarea>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-dot dot-red"></span>
+              <span class="panel-dot dot-yellow"></span>
+              <span class="panel-dot dot-green"></span>
+              <span class="panel-title">Git Diff</span>
+              <label for="diffFile" class="attach-btn">+ Add File</label>
+              <input type="file" id="diffFile" class="hidden-file-input" accept=".txt,.diff,.patch,.md,.json,.py,.js,.java,.yaml,.yml" />
+              <span class="panel-badge">Agent 3</span>
+            </div>
+            <textarea id="diffInput" placeholder="Paste git diff here..."></textarea>
+          </div>
+        </div>
+
+        <div class="action-bar">
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <button class="btn btn-primary" id="analyzeBtn" type="button">Run RCA Analysis</button>
+            <button class="btn btn-ghost" id="stopBtn" type="button">Stop Generation</button>
+          </div>
+
+          <div class="pipeline-bar" id="pipelineBar" role="status" aria-live="polite">
+            <div class="pipeline-step" id="step1">Timeline</div>
+            <span class="pipeline-sep">→</span>
+            <div class="pipeline-step" id="step2">Logs</div>
+            <span class="pipeline-sep">→</span>
+            <div class="pipeline-step" id="step3">Diff</div>
+            <span class="pipeline-sep">→</span>
+            <div class="pipeline-step" id="step4">RCA</div>
+          </div>
+        </div>
+
+        <div class="error-banner" id="errorBanner" role="alert">
+          <span id="errorMsg">Something went wrong.</span>
+        </div>
+
+        <section class="output-section panel visible" id="outputSection" aria-label="RCA Report">
+          <div class="output-toolbar">
+            <span class="output-label">RCA Report <span class="saved-badge" id="savedBadge">saved</span></span>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="btn btn-ghost" id="copyBtn" type="button">Copy MD</button>
+              <button class="btn btn-ghost" id="downloadBtn" type="button">Download .md</button><button class="btn btn-ghost" id="closeReportBtn" type="button">Close Report</button>
+            </div>
+          </div>
+          <div class="output-body">
+            <div class="rca-output" id="rcaOutput">
+              <p style="color:#7d8ab0;">Run an analysis to generate the RCA report.</p>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <aside class="reports-sidebar panel">
+        <div class="panel-header">
+          <span class="panel-dot dot-red"></span>
+          <span class="panel-dot dot-yellow"></span>
+          <span class="panel-dot dot-green"></span>
+          <span class="panel-title">Saved Reports</span>
+        </div>
+        <div class="reports-list" id="reportsList">
+          <div class="empty-state">No saved reports yet.</div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="app-footer">
+    <span>RCA Agent · Multi-agent incident analysis</span>
+    <span id="footerStatus"></span>
+  </footer>
+</div>
+
+<script>
+let currentMarkdown = '';
+let currentReportId = null;
+let generationStopped = false;
+
+async function checkHealth() {
+  const dot = document.getElementById('healthDot');
+  const label = document.getElementById('healthLabel');
+  if (!dot || !label) return;
+  try {
+    const res = await fetch('/health');
+    const data = await res.json();
+    if (data.ollama === 'ok') {
+      dot.className = 'health-dot ok';
+      label.textContent = `ollama: ok · ${data.model}`;
+    } else {
+      dot.className = 'health-dot error';
+      label.textContent = 'ollama: unreachable';
+    }
+  } catch {
+    dot.className = 'health-dot error';
+    label.textContent = 'ollama: unreachable';
+  }
+}
+document.getElementById('healthBtn')?.addEventListener('click', checkHealth);
+checkHealth();
+
+function bindFileInput(fileId, targetId) {
+  const fileInput = document.getElementById(fileId);
+  const target = document.getElementById(targetId);
+  if (!fileInput || !target) return;
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) return;
+    const text = await file.text();
+    target.value = text;
+  });
+}
+bindFileInput('timelineFile', 'timelineInput');
+bindFileInput('logFile', 'logInput');
+bindFileInput('diffFile', 'diffInput');
+
+const steps = ['step1', 'step2', 'step3', 'step4'];
+
+function resetSteps() {
+  steps.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.className = 'pipeline-step';
+    el.textContent = el.textContent.replace(' ⏳', '').replace(' ✓', '');
+  });
+}
+function setStepActive(idx) {
+  const el = document.getElementById(steps[idx]);
+  const footer = document.getElementById('footerStatus');
+  if (!el) return;
+  el.className = 'pipeline-step active';
+  if (!el.textContent.includes('⏳')) el.textContent += ' ⏳';
+  if (footer) footer.textContent = ['Analyzing timeline…', 'Scanning logs…', 'Reviewing diff…', 'Generating RCA…'][idx];
+}
+function setStepDone(idx) {
+  const el = document.getElementById(steps[idx]);
+  if (!el) return;
+  el.className = 'pipeline-step done';
+  el.textContent = el.textContent.replace(' ⏳', '');
+  if (!el.textContent.includes('✓')) el.textContent += ' ✓';
+}
+
+function showError(msg) {
+  const banner = document.getElementById('errorBanner');
+  const errorMsg = document.getElementById('errorMsg');
+  if (errorMsg) errorMsg.textContent = msg;
+  if (banner) banner.classList.add('visible');
+}
+function hideError() {
+  const banner = document.getElementById('errorBanner');
+  if (banner) banner.classList.remove('visible');
+}
+function renderOutput(md) {
+  const out = document.getElementById('rcaOutput');
+  const section = document.getElementById('outputSection');
+  if (out) out.innerHTML = marked.parse(md);
+  if (section) section.classList.add('visible');
+}
+function setSavedBadge(visible) {
+  const badge = document.getElementById('savedBadge');
+  if (!badge) return;
+  badge.classList.toggle('visible', !!visible);
+}
+function stopGeneration() {
+  generationStopped = true;
+  const footer = document.getElementById('footerStatus');
+  if (footer) footer.textContent = 'Generation stopped.';
+}
+document.getElementById('stopBtn')?.addEventListener('click', stopGeneration);
+
+document.getElementById('analyzeBtn')?.addEventListener('click', runAnalysis);
+
+async function runAnalysis() {
+  generationStopped = false;
+  const timeline = document.getElementById('timelineInput')?.value.trim() || '';
+  const logs = document.getElementById('logInput')?.value.trim() || '';
+  const diff = document.getElementById('diffInput')?.value.trim() || '';
+
+  if (!timeline && !logs && !diff) {
+    showError('Please provide at least one input before running analysis.');
+    return;
+  }
+
+  hideError();
+  setSavedBadge(false);
+  currentMarkdown = '';
+  renderOutput('# Root Cause Analysis Report\n\n_Generating live output..._');
+  const out = document.getElementById('rcaOutput');
+  const btn = document.getElementById('analyzeBtn');
+  const pipelineBar = document.getElementById('pipelineBar');
+  const footer = document.getElementById('footerStatus');
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Running...';
+  }
+
+  if (pipelineBar) pipelineBar.classList.add('visible');
+  resetSteps();
+  setStepActive(0);
+
+  try {
+    const res = await fetch('/analyze-stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ timeline, logs, diff })
+    });
+
+    if (!res.ok || !res.body) {
+      throw new Error('Streaming request failed.');
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      if (generationStopped) {
+        if (footer) footer.textContent = 'Generation stopped.';
+        break;
+      }
+
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        let msg;
+        try {
+          msg = JSON.parse(line);
+        } catch {
+          continue;
+        }
+
+        if (msg.type === 'status') {
+          const order = ['Analyzing timeline...','Scanning logs...','Reviewing diff...','Generating RCA...'];
+          const idx = order.indexOf(msg.message);
+          if (idx >= 0) {
+            if (idx > 0) setStepDone(idx - 1);
+            setStepActive(idx);
+          }
+          if (footer) footer.textContent = msg.message;
+        }
+
+        if (msg.type === 'chunk') { currentMarkdown += msg.content || ''; if (out) out.innerHTML = '<pre style="white-space:pre-wrap;word-break:break-word;color:#cdd6f4;font-family:var(--font-mono);line-height:1.7;margin:0;">' + currentMarkdown.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</pre>'; }
+
+        if (msg.type === 'done') { steps.forEach((_, idx) => setStepDone(idx)); currentReportId = msg.report_id || null; if (out) out.innerHTML = marked.parse(currentMarkdown); setSavedBadge(true); if (footer) footer.textContent = 'Analysis complete.'; loadReports(); }
+
+        if (msg.type === 'error') {
+          throw new Error(msg.message || 'Streaming failed.');
+        }
+      }
+    }
+  } catch (err) {
+    showError(`Network error: ${err.message}`);
+    if (pipelineBar) pipelineBar.classList.remove('visible');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Run RCA Analysis';
+    }
+  }
+}
+
+async function loadReports() {
+  const list = document.getElementById('reportsList');
+  if (!list) return;
+
+  try {
+    const res = await fetch('/reports');
+    const data = await res.json();
+
+    if (!res.ok || data.status !== 'ok') {
+      throw new Error('Failed to load reports');
+    }
+
+    if (!data.reports || !data.reports.length) {
+      list.innerHTML = '<div class="empty-state">No saved reports yet.</div>';
+      return;
+    }
+
+    list.innerHTML = '';
+    data.reports.forEach(report => {
+      const item = document.createElement('div');
+      item.className = 'report-item';
+      item.innerHTML = `
+        <div class="report-item-title">Report ${report.id}</div>
+        <div class="report-item-time">${report.created_at || ''}</div>
+        <div class="report-item-preview">${report.preview || 'Saved RCA report'}</div>
+        <div class="report-actions">
+          <button class="mini-btn open-report-btn" data-report-id="${report.id}" type="button">Open</button>
+          <button class="mini-btn delete-report-btn danger" data-report-id="${report.id}" type="button">Delete</button>
+        </div>
+      `;
+      list.appendChild(item);
+    });
+  } catch (err) {
+    list.innerHTML = `<div class="empty-state">Error loading reports: ${err.message}</div>`;
+  }
+}
+
+async function openReport(reportId) {
+  try {
+    const res = await fetch(`/reports/${reportId}`);
+    const data = await res.json();
+    if (!res.ok || data.status !== 'ok') {
+      throw new Error(data.message || 'Failed to open report');
+    }
+
+    const report = data.report;
+    currentReportId = report.id;
+    currentMarkdown = report.rca_markdown || '';
+    document.getElementById('timelineInput').value = report.timeline || '';
+    document.getElementById('logInput').value = report.logs || '';
+    document.getElementById('diffInput').value = report.diff || '';
+    renderOutput(currentMarkdown);
+    setSavedBadge(true);
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
+async function deleteReport(reportId) {
+  const confirmed = confirm(`Delete report ${reportId}?`);
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch(`/reports/${reportId}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok || data.status !== 'ok') {
+      throw new Error(data.message || 'Failed to delete report');
+    }
+
+    if (currentReportId === reportId) {
+      currentReportId = null;
+      currentMarkdown = '';
+      document.getElementById('rcaOutput').innerHTML = '<p style="color:#7d8ab0;">Run an analysis to generate the RCA report.</p>';
+      setSavedBadge(false);
+    }
+
+    loadReports();
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
+document.addEventListener('click', async (e) => {
+  const openBtn = e.target.closest('.open-report-btn');
+  if (openBtn) {
+    await openReport(openBtn.dataset.reportId);
+    return;
+  }
+
+  const deleteBtn = e.target.closest('.delete-report-btn');
+  if (deleteBtn) {
+    await deleteReport(deleteBtn.dataset.reportId);
+  }
+});
+
+document.getElementById('copyBtn')?.addEventListener('click', async () => {
+  if (!currentMarkdown) return;
+  try {
+    await navigator.clipboard.writeText(currentMarkdown);
+  } catch {
+    showError('Clipboard access denied.');
+  }
+});
+
+document.getElementById('downloadBtn')?.addEventListener('click', async () => {
+  if (!currentMarkdown) return;
+  try {
+    const res = await fetch('/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rca_markdown: currentMarkdown })
+    });
+
+    if (!res.ok) {
+      showError('Export failed.');
+      return;
+    }
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'rca_report.md';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    showError(`Download error: ${err.message}`);
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    const btn = document.getElementById('analyzeBtn');
+    if (btn && !btn.disabled) runAnalysis();
+  }
+});
+
+loadReports();
+
+document.getElementById('closeReportBtn')?.addEventListener('click', () => {
+  currentReportId = null;
+  currentMarkdown = '';
+  const out = document.getElementById('rcaOutput');
+  if (out) {
+    out.innerHTML = '<p style="color:#7d8ab0;">Run an analysis to generate the RCA report.</p>';
+  }
+  const badge = document.getElementById('savedBadge');
+  if (badge) {
+    badge.classList.remove('visible');
+  }
+  const footer = document.getElementById('footerStatus');
+  if (footer) {
+    footer.textContent = 'Closed opened report.';
+  }
+});
+
+</script>
+</body>
+</html>
+
+
+

@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RCA Agent — Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+      --bg: #0d0f14;
+      --surface: #13161e;
+      --surface-2: #181c26;
+      --surface-3: #1e2333;
+      --border: rgba(99,120,180,0.18);
+      --border-hover: rgba(99,120,180,0.38);
+      --border-focus: rgba(137,180,250,0.6);
+      --text: #cdd6f4;
+      --text-muted: #7d8ab0;
+      --text-faint: #3d4460;
+      --green: #a6e3a1;
+      --red: #f38ba8;
+      --mauve: #cba6f7;
+      --accent: #89b4fa;
+      --accent-hover: #a4c6ff;
+      --accent-glow: rgba(137,180,250,0.2);
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --transition: 160ms cubic-bezier(0.16,1,0.3,1);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      color: var(--text);
+      background: var(--bg);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+      position: relative;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(99,120,180,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99,120,180,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .glow-orb { position: fixed; border-radius: 50%; filter: blur(80px); pointer-events: none; z-index: 0; }
+    .glow-orb-1 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(137,180,250,0.07) 0%, transparent 70%); top: -100px; left: -100px; }
+    .glow-orb-2 { width: 300px; height: 300px; background: radial-gradient(circle, rgba(203,166,247,0.06) 0%, transparent 70%); bottom: -80px; right: -80px; }
+    @keyframes scanline { 0% { transform: translateY(-100%); } 100% { transform: translateY(100vh); } }
+    .scanline { position: fixed; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, rgba(137,180,250,0.06), transparent); animation: scanline 8s linear infinite; pointer-events: none; z-index: 0; }
+    .login-card {
+      position: relative; z-index: 1;
+      width: 100%; max-width: 420px; padding: 40px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 0 0 1px rgba(137,180,250,0.06), 0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.4);
+      animation: cardIn 0.5s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    @keyframes cardIn { from { opacity: 0; transform: translateY(16px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    .logo-row { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; }
+    .logo-icon { width: 36px; height: 36px; flex-shrink: 0; }
+    .logo-text { font-size: 1.05rem; font-weight: 600; letter-spacing: -0.01em; }
+    .logo-text span { color: var(--accent); }
+    .login-header { margin-bottom: 28px; }
+    .login-title { font-size: 1.15rem; font-weight: 700; color: var(--text); letter-spacing: -0.02em; margin-bottom: 6px; }
+    .login-subtitle { font-size: 0.78rem; color: var(--text-muted); line-height: 1.5; }
+    .cursor { display: inline-block; width: 7px; height: 12px; background: var(--accent); margin-left: 2px; vertical-align: middle; animation: blink 1s step-end infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    .divider { height: 1px; background: var(--border); margin-bottom: 28px; }
+    .form-group { margin-bottom: 18px; }
+    .form-label { display: block; font-size: 0.72rem; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+    .input-wrapper { position: relative; display: flex; align-items: center; }
+    .input-icon { position: absolute; left: 12px; width: 15px; height: 15px; color: var(--text-faint); pointer-events: none; transition: color var(--transition); }
+    .input-wrapper:focus-within .input-icon { color: var(--accent); }
+    .form-input {
+      width: 100%; background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: var(--radius-md); color: var(--text);
+      font-family: var(--font-mono); font-size: 0.85rem;
+      padding: 10px 12px 10px 38px; outline: none;
+      transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
+      caret-color: var(--accent);
+    }
+    .form-input::placeholder { color: var(--text-faint); }
+    .form-input:focus { border-color: var(--border-focus); background: var(--surface-3); box-shadow: 0 0 0 3px rgba(137,180,250,0.08); }
+    .pwd-toggle { position: absolute; right: 10px; background: none; border: none; cursor: pointer; color: var(--text-faint); padding: 4px; border-radius: 4px; display: flex; align-items: center; transition: color var(--transition); }
+    .pwd-toggle:hover { color: var(--text-muted); }
+    .pwd-toggle svg { width: 14px; height: 14px; }
+    .form-extras { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--text-muted); cursor: pointer; user-select: none; }
+    .checkbox-label input[type="checkbox"] { display: none; }
+    .custom-checkbox { width: 15px; height: 15px; border: 1px solid var(--border); border-radius: 3px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; transition: all var(--transition); flex-shrink: 0; }
+    .checkbox-label input:checked ~ .custom-checkbox { background: var(--accent); border-color: var(--accent); }
+    .checkbox-label input:checked ~ .custom-checkbox::after { content: ''; width: 8px; height: 5px; border-left: 1.5px solid #0d0f14; border-bottom: 1.5px solid #0d0f14; transform: rotate(-45deg) translateY(-1px); display: block; }
+    .forgot-link { font-size: 0.75rem; color: var(--text-muted); text-decoration: none; transition: color var(--transition); }
+    .forgot-link:hover { color: var(--accent); }
+    .btn-login {
+      width: 100%; padding: 11px 20px;
+      background: var(--accent); color: #0d0f14;
+      border: 1px solid var(--accent); border-radius: var(--radius-md);
+      font-family: var(--font-mono); font-size: 0.85rem; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: all var(--transition);
+    }
+    .btn-login:hover { background: var(--accent-hover); box-shadow: 0 0 24px var(--accent-glow); transform: translateY(-1px); }
+    .btn-login:active { transform: translateY(0); }
+    .btn-login:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+    .btn-login svg { width: 15px; height: 15px; flex-shrink: 0; }
+    .error-msg { display: none; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(243,139,168,0.08); border: 1px solid rgba(243,139,168,0.3); border-radius: var(--radius-md); color: var(--red); font-size: 0.78rem; margin-bottom: 16px; }
+    .error-msg.visible { display: flex; animation: shake 0.3s cubic-bezier(0.16,1,0.3,1); }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+    .success-overlay { display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px 0; }
+    .success-overlay.visible { display: flex; animation: fadeIn 0.4s ease both; }
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    .success-icon { width: 48px; height: 48px; border-radius: 50%; background: rgba(166,227,161,0.1); border: 1px solid rgba(166,227,161,0.3); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; color: var(--green); }
+    .success-title { font-size: 0.95rem; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .success-sub { font-size: 0.78rem; color: var(--text-muted); }
+    .spinner { width: 14px; height: 14px; border: 2px solid rgba(13,15,20,0.3); border-top-color: #0d0f14; border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (max-width: 480px) { .login-card { margin: 16px; padding: 28px 24px; } }
+  </style>
+</head>
+<body>
+<div class="glow-orb glow-orb-1"></div>
+<div class="glow-orb glow-orb-2"></div>
+<div class="scanline"></div>
+
+<div class="login-card" role="main">
+  <div class="logo-row">
+    <svg class="logo-icon" viewBox="0 0 36 36" fill="none" aria-label="RCA Agent">
+      <rect width="36" height="36" rx="8" fill="#13161e"/>
+      <rect x="0.5" y="0.5" width="35" height="35" rx="7.5" stroke="#89b4fa" stroke-opacity="0.35"/>
+      <circle cx="14.5" cy="14.5" r="6.5" stroke="#89b4fa" stroke-width="1.8" fill="none"/>
+      <line x1="19.5" y1="19.5" x2="26" y2="26" stroke="#89b4fa" stroke-width="2.2" stroke-linecap="round"/>
+      <circle cx="14.5" cy="14.5" r="2.8" fill="#cba6f7" fill-opacity="0.75"/>
+      <circle cx="7" cy="27" r="1.3" fill="#a6e3a1"/>
+      <circle cx="11.5" cy="27" r="1.3" fill="#f9e2af"/>
+      <circle cx="16" cy="27" r="1.3" fill="#f38ba8"/>
+      <line x1="7" y1="27" x2="16" y2="27" stroke="#3d4460" stroke-width="0.9"/>
+    </svg>
+    <span class="logo-text">RCA<span>Agent</span></span>
+  </div>
+
+  <div class="login-header">
+    <div class="login-title">Welcome back</div>
+    <div class="login-subtitle">Sign in to access the incident analysis pipeline<span class="cursor"></span></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="success-overlay" id="successOverlay">
+    <div class="success-icon">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M4 11l5 5 9-9" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="success-title">Authentication successful</div>
+    <div class="success-sub">Redirecting to RCA dashboard&hellip;</div>
+  </div>
+
+  <form id="loginForm" novalidate>
+    <div class="error-msg" id="errorMsg" role="alert">
+      <svg width="14" height="14" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="7.5" cy="7.5" r="6"/>
+        <path d="M7.5 5v3" stroke-linecap="round"/>
+        <circle cx="7.5" cy="10" r="0.6" fill="currentColor"/>
+      </svg>
+      <span id="errorText">Invalid username or password.</span>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="username">Username</label>
+      <div class="input-wrapper">
+        <svg class="input-icon" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4">
+          <circle cx="7.5" cy="5" r="3"/>
+          <path d="M1.5 13.5c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke-linecap="round"/>
+        </svg>
+        <input class="form-input" type="text" id="username" name="username" placeholder="admin" autocomplete="username" spellcheck="false">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="password">Password</label>
+      <div class="input-wrapper">
+        <svg class="input-icon" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4">
+          <rect x="2.5" y="6.5" width="10" height="7" rx="1.5"/>
+          <path d="M5 6.5V4.5a2.5 2.5 0 015 0v2" stroke-linecap="round"/>
+        </svg>
+        <input class="form-input" type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password">
+        <button type="button" class="pwd-toggle" id="pwdToggle" aria-label="Toggle password visibility">
+          <svg id="eyeIcon" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4">
+            <path d="M1 7.5S3.5 3 7.5 3s6.5 4.5 6.5 4.5S13 12 7.5 12 1 7.5 1 7.5z"/>
+            <circle cx="7.5" cy="7.5" r="2"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="form-extras">
+      <label class="checkbox-label">
+        <input type="checkbox" id="rememberMe">
+        <span class="custom-checkbox"></span>
+        Remember me
+      </label>
+      <a href="#" class="forgot-link">Forgot password?</a>
+    </div>
+
+    <button type="submit" class="btn-login" id="loginBtn">
+      <svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M5 7.5h8M10.5 5l3 2.5-3 2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M8 3H3a1 1 0 00-1 1v7a1 1 0 001 1h5" stroke-linecap="round"/>
+      </svg>
+      Sign in
+    </button>
+  </form>
+</div>
+
+<script>
+document.getElementById('pwdToggle').addEventListener('click', () => {
+  const input = document.getElementById('password');
+  const icon  = document.getElementById('eyeIcon');
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon.innerHTML = '<path d="M1 7.5S3.5 3 7.5 3s6.5 4.5 6.5 4.5S13 12 7.5 12 1 7.5 1 7.5z"/><line x1="2" y1="2" x2="13" y2="13" stroke-linecap="round"/>';
+  } else {
+    input.type = 'password';
+    icon.innerHTML = '<path d="M1 7.5S3.5 3 7.5 3s6.5 4.5 6.5 4.5S13 12 7.5 12 1 7.5 1 7.5z"/><circle cx="7.5" cy="7.5" r="2"/>';
+  }
+});
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  const btn      = document.getElementById('loginBtn');
+  const errorDiv = document.getElementById('errorMsg');
+  const errorTxt = document.getElementById('errorText');
+
+  errorDiv.classList.remove('visible');
+  if (!username || !password) {
+    errorTxt.textContent = 'Please enter both username and password.';
+    errorDiv.classList.add('visible');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Authenticating...';
+
+  try {
+    const res  = await fetch('/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (res.ok && data.status === 'ok') {
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('successOverlay').classList.add('visible');
+      setTimeout(() => { window.location.href = '/'; }, 1400);
+    } else {
+      throw new Error(data.message || 'Invalid credentials.');
+    }
+  } catch (err) {
+    btn.disabled = false;
+    btn.innerHTML = '<svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 7.5h8M10.5 5l3 2.5-3 2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 3H3a1 1 0 00-1 1v7a1 1 0 001 1h5" stroke-linecap="round"/></svg> Sign in';
+    errorTxt.textContent = err.message;
+    errorDiv.style.display = 'none';
+    void errorDiv.offsetWidth;
+    errorDiv.style.display = '';
+    errorDiv.classList.add('visible');
+    document.getElementById('password').value = '';
+    document.getElementById('password').focus();
+  }
+});
+
+document.getElementById('username').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); document.getElementById('password').focus(); }
+});
+document.getElementById('username').focus();
+</script>
+</body>
+</html>
