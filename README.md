@@ -19,6 +19,7 @@ No cloud API keys. No rate limits. Runs entirely on your machine using a local m
 
 ## Demo
 
+Demo Video Link: https://drive.google.com/drive/folders/10tN7ORRwezA6pg4srtc4-4J63xLNGadk?usp=sharing
 
 📹 [Watch the demo video](./Video/)
 
