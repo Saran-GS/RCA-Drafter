@@ -19,9 +19,7 @@ No cloud API keys. No rate limits. Runs entirely on your machine using a local m
 
 ## Demo
 
-> _Paste your incident data → agents analyze in parallel → structured report in under 60 seconds._
 
-<!-- Replace with your actual demo video link -->
 📹 [Watch the demo video](./Video/)
 
 ---
