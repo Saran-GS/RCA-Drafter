@@ -162,7 +162,7 @@ Open [http://127.0.0.1:5000](http://127.0.0.1:5000) in your browser.
 │   ├── static/
 │   └── reports/
 ├── Resume/          # Team member resumes (PDF)
-├── Team1/           # Team details and contribution breakdown
+├── team details/           # Team details and contribution breakdown
 ├── Video/           # Demo video or link file
 └── README.md
 ```
