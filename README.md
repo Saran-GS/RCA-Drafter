@@ -5,7 +5,7 @@
 ![Python](https://img.shields.io/badge/Python-3.10+-blue?style=flat-square&logo=python)
 ![Flask](https://img.shields.io/badge/Flask-Backend-black?style=flat-square&logo=flask)
 ![Ollama](https://img.shields.io/badge/Ollama-phi3:mini-purple?style=flat-square)
-![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
+
 
 ---
 
